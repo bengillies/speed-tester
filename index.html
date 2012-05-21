@@ -1,0 +1,98 @@
+<html>
+<body>
+<h1>Speed Tester</h1>
+<button id="start">Start</button>
+<section id="content"></section>
+<p>Download Speed: <span id="download"></span></p>
+<p>Upload Speed: <span id="upload"></span></p>
+<script>
+(function() {
+	var PACKET_SIZE = 100, // in KB
+		CUT_OFF = 90, // only count the last 10 packets due to slow-start TCP etc
+		contents; // cache packet contents for upload
+
+	document.getElementById('start').addEventListener('click', function() {
+		download(function(results) {
+			printSpeed(document.getElementById('download'), results);
+			upload(function(results) {
+				printSpeed(document.getElementById('upload'), results);
+			});
+		});
+	});
+
+	function upload(callback) {
+		var startTime, count = 0, cutOffTime, res,
+			socket = new WebSocket("ws://127.0.0.1:8080/upload");
+
+		console.log('opening websocket');
+
+		socket.onopen = function() {
+			var i = -1, l = 100;
+			console.log('websocket opened');
+			for (; i < l; i++) { // upload contents 100 times
+				socket.send(contents);
+			}
+		};
+
+		socket.onmessage = function(ev) {
+			if (!startTime) startTime = new Date();
+			if (count === CUT_OFF) {
+				cutOffTime = new Date(ev.data);
+			}
+			count++;
+			console.log('Uploaded data at', tick(cutOffTime || startTime,
+				count > CUT_OFF ? count - CUT_OFF : count) + 'MB/s');
+			socket.close();
+			if (count === 100) {
+				res = calculateSpeed(cutOffTime, new Date(), count - CUT_OFF);
+				socket.close();
+				callback(res);
+			}
+		};
+	}
+
+	function download(callback) {
+		var startTime, count = 0, res, cutOffTime,
+			socket = new WebSocket("ws://127.0.0.1:8080/download");
+
+		console.log('opening websocket');
+
+		socket.onopen = function() {
+			console.log('websocket opened');
+			startTime = new Date();
+			socket.send('send me some stuff');
+		};
+
+		socket.onmessage = function(ev) {
+			if (count === CUT_OFF) {
+				cutOffTime = new Date();
+			}
+			count++;
+			console.log('got packet', tick(cutOffTime || startTime,
+				count > CUT_OFF ? count - CUT_OFF : count) + 'MB/s');
+			if (count === 100) {
+				contents = ev.data;
+				res = calculateSpeed(cutOffTime, new Date(), count - CUT_OFF);
+				socket.close();
+				callback(res);
+			}
+		};
+	}
+
+	function tick(startTime, count) {
+		return calculateSpeed(startTime, new Date(), count);
+	}
+
+	function calculateSpeed(startTime, endTime, count) {
+		var timeDiff = (endTime - startTime) / 1000, // in seconds
+			totalSize = PACKET_SIZE * count;
+		return (totalSize / 1024) / timeDiff; // in MB
+	}
+
+	function printSpeed(el, results) {
+		el.textContent = results + 'MB/s';
+	}
+}());
+</script>
+</body>
+</html>
