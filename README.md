@@ -9,7 +9,11 @@ Built using Clojure and JavaScript.
 Usage
 ----
 
-Download and install Clojure and Leiningen. Start the server with:
+Download and install Clojure and Leiningen. Install dependencies with:
+
+	lein deps
+
+Start the server with:
 
 	lein run
 
