@@ -5,6 +5,7 @@
 <section id="content"></section>
 <p>Download Speed: <span id="download"></span></p>
 <p>Upload Speed: <span id="upload"></span></p>
+<p>Ping: <span id="ping"></span></p>
 <script>
 (function() {
 	var PACKET_SIZE = 100, // in KB
@@ -13,12 +14,30 @@
 
 	document.getElementById('start').addEventListener('click', function() {
 		download(function(results) {
-			printSpeed(document.getElementById('download'), results);
+			printSpeed(document.getElementById('download'), results, 'MB/s');
 			upload(function(results) {
-				printSpeed(document.getElementById('upload'), results);
+				printSpeed(document.getElementById('upload'), results, 'MB/s');
+				ping(function(results) {
+					printSpeed(document.getElementById('ping'), results, 'ms');
+				});
 			});
 		});
 	});
+
+	function ping(callback) {
+		var socket = new WebSocket("ws://127.0.0.1:8080/upload"),
+			startTime;
+		socket.onopen = function() {
+			startTime = new Date();
+			socket.send('');
+		}
+		socket.onmessage = function(ev) {
+			var endTime = new Date(),
+				speed = endTime - startTime;
+			socket.close();
+			callback(speed);
+		}
+	}
 
 	function upload(callback) {
 		var startTime, count = 0, cutOffTime, res,
@@ -89,8 +108,8 @@
 		return (totalSize / 1024) / timeDiff; // in MB
 	}
 
-	function printSpeed(el, results) {
-		el.textContent = results + 'MB/s';
+	function printSpeed(el, results, suffix) {
+		el.textContent = results + suffix;
 	}
 }());
 </script>

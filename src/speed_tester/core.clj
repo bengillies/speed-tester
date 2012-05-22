@@ -17,6 +17,10 @@
 (defn receive-100K [c]
 	(.send c (f/unparse (f/formatter "yyyy-MM-dd'T'HH:mm:ss.SSSZ") (time/now))))
 
+;; respond to a ping request
+(defn ping [c]
+	(.send c ""))
+
 (defn -main []
 	(doto (WebServers/createWebServer 8080)
 		(.add "/download"
@@ -29,5 +33,10 @@
 				(onOpen [c] (println "opened upload" c))
 				(onClose [c] (println "closed upload" c))
 				(onMessage [c j] (receive-100K c))))
+		(.add "/ping"
+			(proxy [WebSocketHandler] [] ; ignore data received
+				(onOpen [c] (println "opened ping" c))
+				(onClose [c] (println "closed ping" c))
+				(onMessage [c j] (ping c))))
 		(.add (StaticFileHandler. "."))
 		(.start)))
