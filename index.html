@@ -10,7 +10,8 @@
 (function() {
 	var PACKET_SIZE = 100, // in KB
 		CUT_OFF = 90, // only count the last 10 packets due to slow-start TCP etc
-		contents; // cache packet contents for upload
+		contents, // cache packet contents for upload
+		wsAddress = 'ws://' + window.location.host; //web socket location
 
 	document.getElementById('start').addEventListener('click', function() {
 		download(function(results) {
@@ -25,7 +26,7 @@
 	});
 
 	function ping(callback) {
-		var socket = new WebSocket("ws://127.0.0.1:8080/upload"),
+		var socket = new WebSocket(wsAddress + "/upload"),
 			startTime;
 		socket.onopen = function() {
 			startTime = new Date();
@@ -41,7 +42,7 @@
 
 	function upload(callback) {
 		var startTime, count = 0, cutOffTime, res,
-			socket = new WebSocket("ws://127.0.0.1:8080/upload");
+			socket = new WebSocket(wsAddress + "/upload");
 
 		console.log('opening websocket');
 
@@ -72,7 +73,7 @@
 
 	function download(callback) {
 		var startTime, count = 0, res, cutOffTime,
-			socket = new WebSocket("ws://127.0.0.1:8080/download");
+			socket = new WebSocket(wsAddress + "/download");
 
 		console.log('opening websocket');
 
